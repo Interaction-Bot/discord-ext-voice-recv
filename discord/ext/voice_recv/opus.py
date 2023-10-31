@@ -210,11 +210,11 @@ class PacketDecoder(threading.Thread):
 
         self.start()  # no way this causes any problems haha
 
-    def _get_user(self, user_id: int) -> Optional[User]:
+    def _get_user(self, user_id: int) -> Optional[User] | int:
         vc: VoiceRecvClient = self.sink.voice_client  # type: ignore
-        return vc.guild.get_member(user_id) or vc.client.get_user(user_id)
+        return vc.guild.get_member(user_id) or vc.client.get_user(user_id) or user_id
 
-    def _get_cached_member(self) -> Optional[User]:
+    def _get_cached_member(self) -> Optional[User] | int:
         return self._get_user(self._cached_id) if self._cached_id else None
 
     def feed_rtp(self, packet: RTPPacket) -> None:
@@ -322,11 +322,12 @@ class PacketDecoder(threading.Thread):
             packet, pcm = self._handle_decode(packet)
 
         member = self._get_cached_member()
-
+        print(member)
         if not member:
             self._cached_id = self.sink.voice_client._get_id_from_ssrc(self.ssrc)  # type: ignore
+        
             member = self._get_cached_member()
-
+            
         data = VoiceData(packet, member, pcm=pcm)
 
         self.sink.write(member, data)
